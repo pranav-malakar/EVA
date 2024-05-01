@@ -23,6 +23,8 @@ import sounddevice as sd
 import speech_recognition as sr
 import playsound
 import pygame
+import firebase_admin
+from firebase_admin import credentials, db
 
 Threshold = 100
 
@@ -33,7 +35,9 @@ CHANNELS = 1
 RATE = 16000
 swidth = 2
 
-TIMEOUT_LENGTH = 2
+TIMEOUT_LENGTH = 1
+
+INACTIVE_TIME = 10
 
 f_name_directory = r"temp"
 
@@ -45,7 +49,43 @@ places_Cooridnaates = {
     "University_Building": (12.823430225414375, 80.04281426852602),
     "Tech_Park": (12.82487589069175, 80.04510017461834),
     "M_Block_Hostel": (12.820705752096051, 80.04595180253014),
-    "Hi_Tech" :(12.821017799935602, 80.03892152308431)
+    "Hi_Tech" : (12.821017799935602, 80.03892152308431),
+    "SRM_Hotel" :(12.823874739157871, 80.04148745200509),
+    "SRM_School_of_Architecture" :(12.82406263228619, 80.04402007264517),
+    "SRM_Central_Library" :(12.82352516128309, 80.04241786006341),
+    "SRM_Chemical_Block" :(12.824009009357464, 80.04303553004884),
+    "Java_Green_Food_Court" :(12.823295588680576, 80.04444680372917),
+    "Basic_Engineering_Lab" :(12.823730118888252, 80.04348489168424),
+    "Arch_Gate" :(12.823018345550045, 80.04102756383446),
+    "Potheri_Station" :(12.821443184988869, 80.03715411731638),
+    "TP_Ganesan_Auditorium" :(12.824725978182517, 80.04683662365053),
+    "Tech_Park_Ground" :(12.823652433610484, 80.0466311767049),
+    "Dental_College" :(12.825220621156651, 80.04745849515895),
+    "SRM_Global_Hospital" :(12.82336685837323, 80.04785600738975),
+    "SRM_Medical_College" :(12.820719918200233, 80.0481427295616),
+    "Biotech Block" :(12.824613998338165, 80.04422202529679),
+    "SRM_Arts_and_Science" :(12.82578832477728, 80.04355383038295),
+    "CV_Raman_Research_Park" :(12.825044227439289, 80.04441396314071),
+    "DEICE" :(12.823480798369017, 80.04359934704149),
+    "SRM_University_Admission" :(12.825578929703878, 80.04342252283108),
+    "SRM_Valliammai_Engineering_College" :(12.825941985761867, 80.04132033075835),
+    "SRM_Mechanical_Block" :(12.820844629008333, 80.03970310563086),
+    "Civil_Engineering_Block" :(12.82044409924326, 80.03916291430765),
+    "Electrical_Science_Block" :(12.81988445383377, 80.0392979621466),
+    "Aerospace_Hanger" :(12.820186223562475, 80.04002384423295),
+    "Mechanical_Hanger" :(12.82056480689537, 80.04013075709899),
+    "CRC" :(12.820238643788379, 80.03799577739784),
+    "Main_Campus_Entrance" :(12.821121092115769, 80.03775594954442),
+    "Office" :(12.8200974517599, 80.0385433089774),
+    "FAB_LAB" :(12.82238298785626, 80.04573362025894),
+    "Boys_Hostel" :(12.822895546316373, 80.04330584296365),
+    "SRM_Robocon_Lab" :(12.82380485004579, 80.04335424022312),
+    "Shiv_Temple" :(12.821244852349126, 80.04487169093323),
+    "SRM_BBA_Block" :(12.825237323647595, 80.04466387053536),
+    "SRM_College_of_Agriculture_and_Horiculture" :(12.825334632432396, 80.04539316807005),
+    "SRM_Polytechnic_College" :(12.82556418121155, 80.04490441077488),	
+    "SRM_College_of_Pharmacy" :(12.82556418121155, 80.04490441077488),
+    "Annexure_Campus" :(12.822387485799755, 80.04639081996272)
 }
 
 possible_words = {
@@ -57,16 +97,53 @@ possible_words = {
     "tamil nadu": "topic/tamil-nadu",
     "sports": "sports",
     "football": "sports/football",
+    "chess" : "/topic/chess",
+    "latest": "latest-news",
     "bengaluru" : "bengaluru-news",
     "bangalore" : "bengaluru-news",
     "hi tech": "Hi_Tech",
     "high tech": "Hi_Tech",
     "hitech" : "Hi_Tech",
+    "hi-tech" : "Hi_Tech",
     "m block hostel": "M_Block_Hostel",
     "university building": "University_Building",
     "tech park" : "Tech_Park",
-    "chess" : "/topic/chess",
-    "latest": "latest-news"
+    "hotel" : "SRM_Hotel",
+    "School of Architecture" : "SRM_School_of_Architecture",
+    "Library" : "SRM_Central_Library",
+    "Chemical Block" : "SRM_Chemical_Block",
+    "Java" : "Java_Green_Food_Court",
+    "Food Court" : "Java_Green_Food_Court",
+    "Basic Engineering Lab" : "Basic_Engineering_Lab",
+    "BELL" : "Basic_Engineering_Lab",
+    "Arch Gate" : "Arch_Gate",
+    "Arch-Gate" : "Arch_Gate",
+    "Potheri Staton" : "Potheri_Station",
+    "Auditorium" : "TP_Ganesan_Auditorium",
+    "Ground" : "Tech_Park_Ground",
+    "Dental College" : "Dental_College",
+    "Hospital" : "SRM_Global_Hospital",
+    "Medical College" : "SRM_Medical_College",
+    "Biotech" : "Biotech",
+    "Arts and Science" : "SRM_Arts_and_Science",
+    "Research Park" : "CV_Raman_Research_Park",
+    "Admission" : "SRM_University_Admission",
+    "Valliammai" : "SRM_Valliammai_Engineering_College",
+    "Valimai" : "SRM_Valliammai_Engineering_College",
+    "Aerospace Hangar" : "Aerospace_Hanger",
+    "Mechanical Hangar" : "Mechanical_Hanger",
+    "Mechanical" : "SRM_Mechanical_Block",
+    "Civil" : "Civil_Engineering_Block",
+    "Electrical" : "Electrical_Science_Block",
+    "CRC" : "CRC",
+    "Main Campus" : "Main_Campus_Entrance",
+    "FAB Lab" : "FAB_LAB",
+    "Boys Hostel" : "Boys_Hostel",
+    "Girls Hostel" : "M_Block_Hostel",
+    "Robocon" : "SRM_Robocon_Lab",
+    "Shiv Temple" : "Shiv_Temple",
+    "BBA" : "SRM_BBA_Block",
+    "Annexure Campus" : "Annexure_Campus"
 }
 
 class Recorder:
@@ -116,15 +193,23 @@ class Recorder:
         # print('Written to file: {}'.format(filename))
         # print('Returning to listening')
 
-    def listen(self):
+    def listen(self, timeout):
+        now = time.time()
         while True:
             input = self.stream.read(chunk)
             rms_val = self.rms(input)
             if rms_val > Threshold:
                 self.record()
                 break
+            if timeout:
+                later = time.time()
+                if (int(later - now))>5:
+                    play_wake_sound(True)
+                    return False
+        return True
 
 def text_to_speech(text):
+    text = text.replace("*", "")
     print("TTS- " + text)
     engine = pyttsx3.init()
     voices = engine.getProperty('voices')
@@ -152,7 +237,7 @@ def initialize_Gemini():
             from SRM Institue of Science and Technology. SRM Institue of Science and Technology is one of the top ranking universities of India located 
             in Kattankulathur, Chengalpattu, Tamil Nadu India. You can perform path planning, autonomous navigation, interactive presentation reading, 
             speech recognition, object detection, face detection. You have a 4-wheeled omni-directional drive system and use ROS2. Your response to any 
-            question should be short and crisp and should never exceed 50 words. Your response will be given to a text to speech service so keep it short and free of special characters like *. """]
+            question should be short and crisp and should never exceed 50 words. Keep your response short. """]
     },
     {
         "role": "model",
@@ -180,6 +265,15 @@ def initialize_Twilio():
     client = Client(account_sid, auth_token)
     print("Twilio initialized")
     return client
+
+def initialize_Firebase():
+    cred = credentials.Certificate("Api_Key/credentials.json")
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': Api_Key["Firebase_URL"]
+    })
+    firebase_db = db.reference('messages')
+    print("Firebase initialized")
+    return firebase_db
     
 def send_Whatsapp_Message(destination, distance):
     lat = str(places_Cooridnaates[destination][0])
@@ -215,13 +309,16 @@ def get_route_image_and_distance(start_coords, end_coords):
 
     return walking_distance
 
-def show_Path_Image():
+def show_Path_Image(lang):
     cv2.namedWindow("Path_Image", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Path_Image", cv2.WND_PROP_TOPMOST, cv2.WINDOW_FULLSCREEN)
     image = cv2.imread("temp/temp_path.png")
     cv2.imshow("Path_Image", image)
     cv2.waitKey(500)
-    text_to_speech(destination.replace('_'," ") + " is approximately " + distance[:-3] + " kilometers away.")
+    if lang == "hi":
+        text_to_speech(destination.replace('_'," ") + " yaha se " + distance[:-3] + " kilometers dhur hai.")
+    else:
+        text_to_speech(destination.replace('_'," ") + " is approximately " + distance[:-3] + " kilometers away.")
     text_to_speech("Do you want to get the path image on your whatsapp?")                
     cv2.destroyWindow("Path_Image")
     
@@ -238,12 +335,13 @@ def webscrape_news(category):
     trav = BS(webpage.content, "html.parser")
     
     news = []
-    for tag in trav.find_all(['h2','h3']):
+    for tag in trav.find_all(['h3']):
         for a_tag in tag.find_all('a'):
-            news.append(a_tag.text)
+            if len(a_tag.text)>10:
+                news.append(a_tag.text)
     random.shuffle(news)
         
-    return '\n'.join(news[0:3])
+    return '.\n'.join(news[0:3])
             
 def speech_to_text(audiofile):
     rec = sr.Recognizer()
@@ -256,9 +354,12 @@ def speech_to_text(audiofile):
     print("STT- "+text)
     return text
 
-def play_wake_sound():
+def play_wake_sound(reverse):
     pygame.init()
-    pygame.mixer.music.load("temp/wake.wav")
+    if reverse:
+        pygame.mixer.music.load("temp/wake.wav")
+    else:
+        pygame.mixer.music.load("temp/wake_reverse.wav")
     pygame.mixer.music.play(0)
     clock = pygame.time.Clock()
     clock.tick(10)
@@ -271,38 +372,54 @@ if __name__ == "__main__":
     convo = initialize_Gemini()
     initialize_Ngrok()
     client = initialize_Twilio()
+    firebase_db = initialize_Firebase()
     assistant = Recorder()
+    print("You may now speak")
     while True:
-        assistant.listen()
-        wake_word = speech_to_text("temp/temp_audio.wav")
-        # wake_word = input("Enter text to convert to speech: ") #voice command
-        # if False:
-        if ("eva" in wake_word.casefold()):
-            play_wake_sound()
-            print("Listening...")
-            assistant.listen()
-            message = speech_to_text("temp/temp_audio.wav")
-            # message = input("Enter prompt: ") #voice command
-            if (("path" in message.casefold()) or ("route" in message.casefold())):        
-                current_location = "University_Building"
-                destination = filter_message(message)
-                distance = get_route_image_and_distance(places_Cooridnaates[current_location], places_Cooridnaates[destination])
-                show_Path_Image()
-                assistant.listen()
-                # confirmation = input("do you want WA ") #voice command
-                confirmation = speech_to_text("temp/temp_audio.wav")
-                if (("yes" in confirmation.casefold()) or ("sure" in confirmation.casefold())):
-                    #Enter whatsapp number(feature)
-                    send_Whatsapp_Message(destination, distance)
-                    text_to_speech("Path image has been sent on your whatsapp number")
-                else:
-                    text_to_speech("Okay")
-            elif "news" in message.casefold() or "happening" in message.casefold():
-                news_category = filter_message(message)
-                latest_news = webscrape_news(news_category)
-                text_to_speech(latest_news)
-                # print(news_category)
-                
-            else:
-                convo.send_message(message)
-                text_to_speech(convo.last.text)
+        try:
+            assistant.listen(None)
+            wake_word = speech_to_text("temp/temp_audio.wav")
+            # wake_word = input("Enter text to convert to speech: ") #voice command
+            # if False:
+            if ("eva" in wake_word.casefold()):
+                while True:
+                    play_wake_sound(False)
+                    print("Listening...")
+                    res = assistant.listen(INACTIVE_TIME)
+                    if not res: 
+                        break
+                    message = speech_to_text("temp/temp_audio.wav")
+                    # message = input("Enter prompt: ") #voice command
+                    if ("namaste" in message.casefold()):
+                        firebase_db.push().set({
+                            'message': "namaste",
+                            'timestamp': int(time.time())
+                        })
+                    elif (("path" in message.casefold()) or ("route" in message.casefold()) or ("rasta" in message.casefold())):
+                        lang = "en"
+                        if ("rasta" in message.casefold()):
+                            lang = "hi"        
+                        current_location = "University_Building"
+                        destination = filter_message(message)
+                        distance = get_route_image_and_distance(places_Cooridnaates[current_location], places_Cooridnaates[destination])
+                        show_Path_Image(lang)
+                        assistant.listen()
+                        # confirmation = input("do you want WA ") #voice command
+                        confirmation = speech_to_text("temp/temp_audio.wav")
+                        if (("yes" in confirmation.casefold()) or ("sure" in confirmation.casefold()) or ("haan" in confirmation.casefold()) or ("bilkul" in confirmation.casefold())):
+                            #Enter whatsapp number(feature)
+                            send_Whatsapp_Message(destination, distance)
+                            text_to_speech("Path image has been sent on your whatsapp number")
+                        else:
+                            text_to_speech("Okay")
+                    elif "news" in message.casefold() or "happening" in message.casefold():
+                        news_category = filter_message(message)
+                        latest_news = webscrape_news(news_category)
+                        text_to_speech(latest_news)
+                        # print(news_category)
+                    else:
+                        convo.send_message(message)
+                        text_to_speech(convo.last.text)
+        except:
+            play_wake_sound(True)
+            text_to_speech("Sorry, I don't know about that")
