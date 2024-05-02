@@ -395,6 +395,11 @@ if __name__ == "__main__":
                             'message': "namaste",
                             'timestamp': int(time.time())
                         })
+                        time.sleep(6)
+                        text_to_speech("Namaste")
+                        time.sleep(1)
+                        text_to_speech("How Can i Help you?")
+
                     elif (("path" in message.casefold()) or ("route" in message.casefold()) or ("rasta" in message.casefold())):
                         lang = "en"
                         if ("rasta" in message.casefold()):
@@ -409,7 +414,10 @@ if __name__ == "__main__":
                         if (("yes" in confirmation.casefold()) or ("sure" in confirmation.casefold()) or ("haan" in confirmation.casefold()) or ("bilkul" in confirmation.casefold())):
                             #Enter whatsapp number(feature)
                             send_Whatsapp_Message(destination, distance)
-                            text_to_speech("Path image has been sent on your whatsapp number")
+                            if lang == "hi":
+                                text_to_speech("Raste ka chitr aapke whatsapp number par bhej diya gaya hai")
+                            else:
+                                text_to_speech("Path image has been sent on your whatsapp number")
                         else:
                             text_to_speech("Okay")
                     elif "news" in message.casefold() or "happening" in message.casefold():

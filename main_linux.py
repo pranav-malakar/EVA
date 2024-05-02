@@ -208,7 +208,12 @@ class Recorder:
                     play_wake_sound(True)
                     return False
         return True
-            
+    
+    def stop(self):
+        self.stream.stop_stream()
+        self.stream.close()
+        self.p.terminate()
+    
 def old_text_to_speech(text):
     text = text.replace("*", "")
     print("TTS- " + text)
@@ -269,7 +274,7 @@ def initialize_Gemini():
 def initialize_Ngrok():
     # Configure ngrok without printing output on the console
     with open(os.devnull, 'w') as devnull:
-        subprocess.Popen(["ngrok", "http", "--domain=" +  Api_Key["ngrok_endpoint"][8:],"file:/home/pranav/Desktop/Eva/temp"], stdout=devnull, stderr=devnull)
+        subprocess.Popen(["ngrok", "http", "--domain=" +  Api_Key["ngrok_endpoint"][8:],"file:/home/coastrack/Desktop/EVA/temp"], stdout=devnull, stderr=devnull)
     time.sleep(3)
     print("Ngrok initialized at- " + Api_Key["ngrok_endpoint"])
 
@@ -325,15 +330,16 @@ def get_route_image_and_distance(start_coords, end_coords):
 
 def show_Path_Image():
     cv2.namedWindow("Path_Image", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Path_Image", cv2.WND_PROP_TOPMOST, cv2.WINDOW_FULLSCREEN)
+    cv2.resizeWindow("Path_Image",1366,768)
     image = cv2.imread("temp/temp_path.png")
     cv2.imshow("Path_Image", image)
     cv2.waitKey(500)
     if lang == "hi":
         text_to_speech(destination.replace('_'," ") + " yaha se " + distance[:-3] + " kilometers dhur hai.")
+        text_to_speech("Kya aapko yeh raste ka chitr apne whatsapp number par chahiye") 
     else:
         text_to_speech(destination.replace('_'," ") + " is approximately " + distance[:-3] + " kilometers away.")
-    text_to_speech("Do you want to get the path image on your whatsapp?")                
+        text_to_speech("Do you want to get the path image on your whatsapp?")                
     cv2.destroyWindow("Path_Image")
     
 def filter_message(message):
@@ -366,6 +372,7 @@ def speech_to_text(audiofile):
     except sr.UnknownValueError:
         text = ""
     print("STT- "+text)
+    os.remove(audiofile)  
     return text
 
 def play_wake_sound(reverse):
@@ -387,11 +394,12 @@ if __name__ == "__main__":
     initialize_Ngrok()
     client = initialize_Twilio()
     firebase_db = initialize_Firebase()
-    assistant = Recorder()
     print("You may now speak")
     while True:
         try:
+            assistant = Recorder()
             assistant.listen(None)
+            assistant.stop()
             wake_word = speech_to_text("temp/temp_audio.wav")
             # wake_word = input("Enter text to convert to speech: ") #voice command
             # if False:
@@ -399,7 +407,9 @@ if __name__ == "__main__":
                 while True:
                     play_wake_sound(False)
                     print("Listening...")
+                    assistant = Recorder()
                     res = assistant.listen(INACTIVE_TIME)
+                    assistant.stop()
                     if not res: 
                         break
                     message = speech_to_text("temp/temp_audio.wav")
@@ -409,6 +419,11 @@ if __name__ == "__main__":
                             'message': "namaste",
                             'timestamp': int(time.time())
                         })
+                        time.sleep(6)
+                        text_to_speech("Namaste")
+                        time.sleep(1)
+                        text_to_speech("How Can i Help you?")
+
                     elif (("path" in message.casefold()) or ("route" in message.casefold())  or ("rasta" in message.casefold())):        
                         lang = "en"
                         if ("rasta" in message.casefold()):
@@ -417,13 +432,18 @@ if __name__ == "__main__":
                         destination = filter_message(message)
                         distance = get_route_image_and_distance(places_Cooridnaates[current_location], places_Cooridnaates[destination])
                         show_Path_Image()
+                        assistant = Recorder()
                         assistant.listen()
+                        assistant.stop()
                         # confirmation = input("do you want WA ") #voice command
                         confirmation = speech_to_text("temp/temp_audio.wav")
-                        if (("yes" in confirmation.casefold()) or ("sure" in confirmation.casefold())):
+                        if (("yes" in confirmation.casefold()) or ("sure" in confirmation.casefold()) or ("han" in confirmation.casefold()) or ("bilkul" in confirmation.casefold())):
                             #Enter whatsapp number(feature)
                             send_Whatsapp_Message(destination, distance)
-                            text_to_speech("Path image has been sent on your whatsapp number")
+                            if lang == "hi":
+                                text_to_speech("Raste ka chitr aapke whatsapp number par bhej diya gaya hai")
+                            else:
+                                text_to_speech("Path image has been sent on your whatsapp number")
                         else:
                             text_to_speech("Okay")
                     elif "news" in message.casefold() or "happening" in message.casefold():
