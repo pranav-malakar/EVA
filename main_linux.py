@@ -204,7 +204,7 @@ class Recorder:
                 break
             if timeout:
                 later = time.time()
-                if (int(later - now))>5:
+                if (int(later - now))>timeout:
                     play_wake_sound(True)
                     return False
         return True
@@ -403,7 +403,7 @@ if __name__ == "__main__":
             wake_word = speech_to_text("temp/temp_audio.wav")
             # wake_word = input("Enter text to convert to speech: ") #voice command
             # if False:
-            if ("eva" in wake_word.casefold()):
+            if ("eva" in wake_word.casefold() or "yuva" in wake_word.casefold()):
                 while True:
                     play_wake_sound(False)
                     print("Listening...")
@@ -414,16 +414,45 @@ if __name__ == "__main__":
                         break
                     message = speech_to_text("temp/temp_audio.wav")
                     # message = input("Enter prompt: ") #voice command
-                    if ("namaste" in message.casefold()):
-                        firebase_db.push().set({
-                            'message': "namaste",
-                            'timestamp': int(time.time())
-                        })
-                        time.sleep(6)
-                        text_to_speech("Namaste")
-                        time.sleep(1)
-                        text_to_speech("How Can i Help you?")
-
+                    if ("namaste" in message.casefold() or "hi" in message.casefold() or "wave" in message.casefold() or "stop" in message.casefold()):
+                        if ("namaste" in message.casefold()):
+                            firebase_db.push().set({
+                                'message': "namaste",
+                                'timestamp': int(time.time())
+                            })
+                            time.sleep(6)
+                            text_to_speech("Namaste")
+                            time.sleep(1)
+                            text_to_speech("How Can i Help you?")
+                            time.sleep(2)
+                        elif ("hi" in message.casefold()):
+                            firebase_db.push().set({
+                                'message': "hi",
+                                'timestamp': int(time.time())
+                            })
+                            time.sleep(4)
+                            text_to_speech("Hi")
+                            time.sleep(1)
+                            text_to_speech("How Can i Help you?")
+                            time.sleep(2)
+                        elif ("wave" in message.casefold()):
+                            firebase_db.push().set({
+                                'message': "wave",
+                                'timestamp': int(time.time())
+                            })
+                            time.sleep(4)
+                            text_to_speech("Hi")
+                            time.sleep(1)
+                            text_to_speech("How Can i Help you?")
+                        elif ("stop" in message.casefold()):
+                            firebase_db.push().set({
+                                'message': "stop",
+                                'timestamp': int(time.time())
+                            })
+                            time.sleep(4)
+                            text_to_speech("Hi")
+                            time.sleep(1)   
+                            text_to_speech("How Can i Help you?")
                     elif (("path" in message.casefold()) or ("route" in message.casefold())  or ("rasta" in message.casefold())):        
                         lang = "en"
                         if ("rasta" in message.casefold()):
@@ -433,7 +462,7 @@ if __name__ == "__main__":
                         distance = get_route_image_and_distance(places_Cooridnaates[current_location], places_Cooridnaates[destination])
                         show_Path_Image()
                         assistant = Recorder()
-                        assistant.listen()
+                        assistant.listen(None)
                         assistant.stop()
                         # confirmation = input("do you want WA ") #voice command
                         confirmation = speech_to_text("temp/temp_audio.wav")
